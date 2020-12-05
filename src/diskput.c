@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
   fstat(fd, &sb);
   char* address = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if(address == MAP_FAILED) {
-    printf("Error: Memory was failed to be mapped.\n");
+    printf("Error: Memory was failed to be mapped.\n Address");
     exit(1);
   }
   int fd1;
@@ -56,7 +56,7 @@ int main(int argc, char* argv[]) {
 	fstat(fd1, &sb1);
 	char* address1 = mmap(NULL, sb1.st_size, PROT_READ, MAP_SHARED, fd1, 0);
 	if(address1 == MAP_FAILED){
-		printf("Error: Memory was failed to be mapped.\n");
+		printf("Error: Memory was failed to be mapped.\n Address 1");
 		exit(1);
 	}
 	if(sb1.st_size >= freeDisk(address)){
@@ -110,6 +110,8 @@ void sendFile(char* address, char* address1, char* fp, char* file, int sizeof_fi
 }
 
 void diskUpdate(char* address, char* file, int sizeof_file, int logical){
+  char *dot = strrchr(file, '.');
+  if(!dot || dot == file) return;
   while(address[0] != 0x00){
     address += 0x20;
   }
@@ -117,7 +119,8 @@ void diskUpdate(char* address, char* file, int sizeof_file, int logical){
   int j = -1;
   for(i = 0; i < 8; i++) {
     if(file[i] == '.'){
-      j = i; break;
+      j = i;
+      break;
     }
     if(j == -1) {
       address[i] = file[i];
@@ -125,7 +128,7 @@ void diskUpdate(char* address, char* file, int sizeof_file, int logical){
       address[i] = ' ';
     }
   }
-  for(i = 0; i < 3; i++){
+  for(i = 0; i < strlen(dot+1); i++){
     address[i+8] = file[i+j+1];
   }
   address[11] = 0x00;
@@ -160,7 +163,7 @@ void diskUpdate(char* address, char* file, int sizeof_file, int logical){
 void FATSet(char* address, int i, int val){
   if(i%2 == 0){
 		address[SECTOR_SIZE + (3*i/2) + 1] = (val >> 8) & 0x0f;
-		address[SECTOR_SIZE + (3*i/2)] = val & 0xff;s
+		address[SECTOR_SIZE + (3*i/2)] = val & 0xff;
 	}
 	else{
 		address[SECTOR_SIZE + (3*i/2)] = (val << 4) & 0xf0;

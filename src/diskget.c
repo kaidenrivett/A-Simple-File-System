@@ -18,6 +18,7 @@ int main(int argc, char* argv[]) {
   fstat(fd, &sb);
   char* address = mmap(NULL, sb.st_size, PROT_READ, MAP_SHARED, fd, 0);
   if(address == MAP_FAILED) {
+    close(fd);
     printf("Error: Memory was failed to be mapped.\n");
     exit(1);
   }
@@ -45,6 +46,14 @@ int main(int argc, char* argv[]) {
 		printf("Error: Seek for end of file failed.\n");
 		exit(1);
   }
+  if(write(fd1, "", 1) != 1){
+		munmap(address,sb.st_size);
+		close(fd);
+		fclose(fp);
+		close(fd1);
+		printf("Error: failed to write NULL character at end of file.\n");
+		exit(1);
+	}
   char* address1 = mmap(NULL, sizeof_file, PROT_WRITE, MAP_SHARED, fd1, 0);
   if(address1 == MAP_FAILED){
     printf("Error: Memory was failed to be mapped.\n");
@@ -63,7 +72,7 @@ char* searchFile(char* address, char* file){
   char* init = address;
   while(address[0] != 0x00) {
     if(address[0] != '.' && address[1] != '.' && address[26] != 0x00 && address[26] != 0x01 && address[11] != 0x0f && (address[11] & 0x08) != 0x08){
-      if(address[11] & 0x10){
+      if((address[11] & 0x10) != 0x10){
         char name[21];
         char ext[4];
         int i;
