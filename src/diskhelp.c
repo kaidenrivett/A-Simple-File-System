@@ -1,34 +1,32 @@
 #include "disksupport.h"
 
 //get the FAT entry at index K
-int retrieveFAT(char* ad, int k){
-	int low;
-	int high;
-	if((k % 2) == 0){
-		low = ad[SECTOR_SIZE + (3*k/2) + 1] & 0x0f;
-		high = ad[SECTOR_SIZE + (3*k/2)] & 0xff;
+int retrieveFAT(char* address, int i){
+	int low, high;
+	if((i % 2) == 0){
+		low = address[SECTOR_SIZE + (3*i/2) + 1] & 0x0f;
+		high = address[SECTOR_SIZE + (3*i/2)] & 0xff;
 		return (low << 8) + high;
 	}
 	else{
-		low = ad[SECTOR_SIZE + (3*k/2)] & 0xf0;
-		high = ad[SECTOR_SIZE + (3*k/2) + 1] & 0xff;
+		low = address[SECTOR_SIZE + (3*i/2)] & 0xf0;
+		high = address[SECTOR_SIZE + (3*i/2) + 1] & 0xff;
 		return (low >> 4) + (high << 4);
 	}
 }
 
 //get the total size of the disk image
-int sizeOfDisk(char* ad){
-	int bytes = ad[11] + (ad[12] << 8);
-	int sectors = ad[19] + (ad[20] << 8);
+int sizeOfDisk(char* address){
+	int bytes = address[11] + (address[12] << 8);
+	int sectors = address[19] + (address[20] << 8);
 	return bytes * sectors;
 }
 
 //get the free space of the disk image
-int freeDisk(char* ad){
+int freeDisk(char* address){
 	int free = 0;
-	int a;
-	for(a = 19; a < ad[19] + (ad[20] << 8); a++){
-		if(retrieveFAT(ad, a) == 0x000){
+	for(int i = 19; i < address[19] + (address[20] << 8); i++){
+		if(retrieveFAT(address, i) == 0x000){
 			free++;
 		}
 	}
