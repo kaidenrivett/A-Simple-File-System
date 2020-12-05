@@ -1,5 +1,4 @@
 #include "disksupport.h"
-#include <stdio.h>
 
 /////// Function Prototypes ///////
 char* searchFile(char* address, char* file);
