@@ -1,5 +1,6 @@
 #include "disksupport.h"
 
+///// Function Prototypes //////
 char* directorySearch(char* address, char* directory);
 void sendFile(char* address, char* address1, char* fp, char* file, int sizeof_file);
 void diskUpdate(char* address, char* file, int sizeof_file, int logical);
@@ -23,6 +24,7 @@ int main(int argc, char* argv[]) {
   char* subdirectory = NULL;
   char* tokens[256];
   int cnt = 1;
+  // if there is a specified path, extract the file path
   if(path_exists == 1) {
     char* token = strtok(argv[2], "/");
     while(token != NULL){
@@ -33,6 +35,7 @@ int main(int argc, char* argv[]) {
     subdirectory = strdup(tokens[cnt-2]);
     file = strdup(tokens[cnt-1]);
   } else {
+    // no file path is given, only the file
     file = argv[2];
   }
   int fd;
@@ -44,7 +47,7 @@ int main(int argc, char* argv[]) {
   fstat(fd, &sb);
   char* address = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
   if(address == MAP_FAILED) {
-    printf("Error: Memory was failed to be mapped.\n Address");
+    printf("Error: Memory was failed to be mapped.\n");
     exit(1);
   }
   int fd1;
@@ -56,7 +59,7 @@ int main(int argc, char* argv[]) {
 	fstat(fd1, &sb1);
 	char* address1 = mmap(NULL, sb1.st_size, PROT_READ, MAP_SHARED, fd1, 0);
 	if(address1 == MAP_FAILED){
-		printf("Error: Memory was failed to be mapped.\n Address 1");
+		printf("Error: Memory was failed to be mapped.\n");
 		exit(1);
 	}
 	if(sb1.st_size >= freeDisk(address)){
@@ -82,36 +85,37 @@ int main(int argc, char* argv[]) {
 }
 
 void sendFile(char* address, char* address1, char* fp, char* file, int sizeof_file){
-  int current = FATFree(address);
+  int curr = FATFree(address);
   int bytes = sizeof_file;
   int physical;
   if(address != fp){
-    diskUpdate(address + (fp[26] + 31) * SECTOR_SIZE, file, sizeof_file, current);
+    diskUpdate(address + (fp[26] + 31) * SECTOR_SIZE, file, sizeof_file, curr);
   } else {
-    diskUpdate(address + SECTOR_SIZE * 19, file, sizeof_file, current);
+    diskUpdate(address + SECTOR_SIZE * 19, file, sizeof_file, curr);
   }
   do{
-    physical = (current + 31) * SECTOR_SIZE;
+    physical = (curr + 31) * SECTOR_SIZE;
     int i;
     for(i = 0; i < SECTOR_SIZE; i++){
       if(bytes <= 0) {
-        FATSet(address, current, 0xfff);
+        FATSet(address, curr, 0xfff);
         break;
       }
       address[i + physical] = address1[sizeof_file - bytes];
       bytes--;
     }
-    FATSet(address, current, 0x77);
+    FATSet(address, curr, 0x77);
     int next = FATFree(address);
-    FATSet(address, current, next);
-    retrieveFAT(address, current);
-    current = next;
+    FATSet(address, curr, next);
+    retrieveFAT(address, curr);
+    curr = next;
   } while(bytes > 0);
 }
 
 void diskUpdate(char* address, char* file, int sizeof_file, int logical){
   char *dot = strrchr(file, '.');
   if(!dot || dot == file) return;
+
   while(address[0] != 0x00){
     address += 0x20;
   }
@@ -133,16 +137,17 @@ void diskUpdate(char* address, char* file, int sizeof_file, int logical){
   }
   address[11] = 0x00;
   time_t t = time(NULL);
-	struct tm* now = localtime(&t);
-	int year = now->tm_year + 1900;
-	int month = (now->tm_mon + 1);
-	int day = now->tm_mday;
-	int hour = now->tm_hour;
-	int minute = now->tm_min;
+	struct tm* present = localtime(&t);
+	int year = present->tm_year + 1900;
+	int month = (present->tm_mon + 1);
+	int day = present->tm_mday;
+	int hour = present->tm_hour;
+	int minute = present->tm_min;
 	address[14] = 0x00;
 	address[15] = 0x00;
 	address[16] = 0x00;
 	address[17] = 0x00;
+  // set the present time here
 	address[17] |= (year - 1980) << 1;
 	address[17] |= (month - ((address[16] & 0xe0) >> 5)) >> 3;
 	address[16] |= (month - (((address[17] & 0x01)) << 3)) << 5;
@@ -150,10 +155,10 @@ void diskUpdate(char* address, char* file, int sizeof_file, int logical){
 	address[15] |= (hour << 3) & 0xf8;
 	address[15] |= (minute - ((address[14] & 0xe0) >> 5)) >> 3;
 	address[14] |= (minute - ((address[15] & 0x07) << 3)) << 5;
-	//set the first logical cluster
+	// create the logical cluster here
 	address[26] = (logical - (address[27] << 8)) & 0xff;
 	address[27] = (logical - address[26]) >> 8;
-	//set the file size
+	// set the size of the file here
 	address[28] = sizeof_file & 0x000000ff;
 	address[29] = (sizeof_file & 0x0000ff00) >> 8;
 	address[30] = (sizeof_file & 0x00ff0000) >> 16;
@@ -162,27 +167,26 @@ void diskUpdate(char* address, char* file, int sizeof_file, int logical){
 
 void FATSet(char* address, int i, int val){
   if(i%2 == 0){
-		address[SECTOR_SIZE + (3*i/2) + 1] = (val >> 8) & 0x0f;
+		address[SECTOR_SIZE + (3*i/2) + 1] = (val>>8) & 0x0f;
 		address[SECTOR_SIZE + (3*i/2)] = val & 0xff;
-	}
-	else{
-		address[SECTOR_SIZE + (3*i/2)] = (val << 4) & 0xf0;
-		address[SECTOR_SIZE + (3*i/2) + 1] = (val >> 4) & 0xff;
+	}else{
+		address[SECTOR_SIZE + (3*i/2)] = (val<<4) & 0xf0;
+		address[SECTOR_SIZE + (3*i/2) + 1] = (val>>4) & 0xff;
 	}
 }
 
 int FATFree(char* address){
   int i = 2;
-  char* current = address + (i + 30) * SECTOR_SIZE;
-  while(retrieveFAT(address, i) != 0x00 || current[0] != 0x00){
+  char* curr = address + (i + 30) * SECTOR_SIZE;
+  while(retrieveFAT(address, i) != 0x00 || curr[0] != 0x00){
     i++;
-    current = address + (i + 31) * SECTOR_SIZE;
+    curr = address + (i + 31) * SECTOR_SIZE;
   }
   return i;
 }
 
 char* directorySearch(char* address, char* directory){
-  char* init = address;
+  char* load = address;
   char* file_was_found = NULL;
   char* subdirectory = NULL;
   char name[21];
@@ -203,7 +207,7 @@ char* directorySearch(char* address, char* directory){
         if(file_was_found != NULL){
           return file_was_found;
         } else {
-          file_was_found = directorySearch(init + (subdirectory[26] + 12) * SECTOR_SIZE, directory);
+          file_was_found = directorySearch(load + (subdirectory[26] + 31 - 19) * SECTOR_SIZE, directory);
         }
       }
   }

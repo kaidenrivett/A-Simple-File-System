@@ -69,7 +69,7 @@ int main(int argc, char* argv[]) {
 }
 
 char* searchFile(char* address, char* file){
-  char* init = address;
+  char* load = address;
   while(address[0] != 0x00) {
     if(address[0] != '.' && address[1] != '.' && address[26] != 0x00 && address[26] != 0x01 && address[11] != 0x0f && (address[11] & 0x08) != 0x08){
       if((address[11] & 0x10) != 0x10){
@@ -90,10 +90,8 @@ char* searchFile(char* address, char* file){
           return address;
         }
       } else {
-        char* file_was_found = searchFile(init + (address[26] + 12) * SECTOR_SIZE, file);
-        if(file_was_found != NULL) {
-          return file_was_found;
-        }
+        char* file_was_found = searchFile(load + (address[26] + 12) * SECTOR_SIZE, file);
+        if(file_was_found != NULL) { return file_was_found; }
       }
     }
     address += 0x20;

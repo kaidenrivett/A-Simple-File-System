@@ -1,5 +1,6 @@
 #include "disksupport.h"
 
+///// Function Prototypes //////
 char* displayDiskImage(char* address);
 
 int main(int argc, char* argv[]) {
@@ -29,7 +30,7 @@ int main(int argc, char* argv[]) {
 char* displayDiskImage(char* address) {
   char name[21];
   char ext[4];
-  char* init = address;
+  char* load = address;
   char* subdirectory = NULL;
   do{
     while(address[0] != 0x00) {
@@ -75,13 +76,12 @@ char* displayDiskImage(char* address) {
           printf("%c", subdirectory[i]);
         }
         printf("\n\n==================\n\n");
-        address = displayDiskImage(init + (subdirectory[26] + 12) * SECTOR_SIZE);
+        address = displayDiskImage(load + (subdirectory[26] + 12) * SECTOR_SIZE);
       }
   }
     address += 0x20;
   }
   subdirectory = address;
 }
-  while(subdirectory != NULL && subdirectory[0] != 0x00);
-    return subdirectory;
+  while(subdirectory != NULL && subdirectory[0] != 0x00); return subdirectory;
 }
